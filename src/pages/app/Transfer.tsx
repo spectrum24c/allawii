@@ -49,7 +49,10 @@ export default function Transfer() {
   }, []);
 
   useEffect(() => {
-    if (step !== "amount" || minor < 100) { setQuote(null); return; }
+    // Keep the confirmed quote when moving to the authorise step. Clearing it there
+    // left the PIN card with nothing to render.
+    if (step !== "amount") return;
+    if (minor < 100) { setQuote(null); return; }
     setQuoting(true);
     const t = setTimeout(() => {
       actions.quote(minor).then(setQuote).catch(() => setQuote(null)).finally(() => setQuoting(false));
@@ -247,11 +250,11 @@ export default function Transfer() {
         )}
 
         {/* STEP 3 */}
-        {step === "authorise" && selected && quote && (
+        {step === "authorise" && selected && (
           <Card className="mt-4 p-5">
             <p className="text-[13.5px] font-semibold">Authorise with your PIN</p>
             <p className="mt-1 text-[12.5px] text-[var(--color-ink-soft)]">
-              You are sending <span className="font-semibold text-[var(--color-ink)] tnum">{naira(quote.amount_minor)}</span> to {selected.account_name}.
+              You are sending <span className="font-semibold text-[var(--color-ink)] tnum">{naira(quote?.amount_minor ?? minor)}</span> to {selected.account_name}.
             </p>
 
             <div className="mt-4">
@@ -273,7 +276,7 @@ export default function Transfer() {
             {error && <p className="mt-3 rounded-lg bg-[#fdeceb] px-3 py-2 text-[12.5px] text-[var(--color-danger)]">{error}</p>}
 
             <Button block className="mt-4" loading={busy} onClick={submitTransfer} disabled={pin.length !== 4}>
-              Send {naira(quote.amount_minor)}
+              Send {naira(quote?.amount_minor ?? minor)}
             </Button>
             <p className="mt-3 flex items-start gap-1.5 text-[11.5px] text-[var(--color-ink-soft)]">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
