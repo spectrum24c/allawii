@@ -300,6 +300,8 @@ export const admin = {
     rpc<import("./types").AdminUserRow[]>("rpc_admin_users", { p_search: search, p_limit: limit, p_offset: offset }),
   setAccountStatus: (userId: string, status: string, reason?: string) =>
     rpc("rpc_admin_set_account_status", { p_user_id: userId, p_status: status, p_reason: reason ?? null }),
+  volume: (days = 7) =>
+    rpc<Array<{ day: string; deposits_minor: number; transfers_minor: number; tx_count: number }>>("rpc_admin_volume", { p_days: days }),
   kycQueue: (status: string | null = null) =>
     rpc<Array<{
       user_id: string; full_name: string; email: string; phone_number: string | null;
