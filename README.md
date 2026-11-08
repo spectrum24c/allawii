@@ -214,3 +214,25 @@ on conflict (user_id, role) do nothing;
   and is applied through the admin decision RPC or a provider webhook.
 - Reconciliation reports against Monnify settlement data are modelled (`webhook_events`, `audit_logs`) but no
   scheduled reconciliation job is included.
+
+---
+
+## Live deployment status
+
+- Repository: <https://github.com/spectrum24c/allawii>
+- Public site (GitHub Pages, `gh-pages` branch): <https://spectrum24c.github.io/allawii/>
+
+Pages is currently built from the `gh-pages` branch. The automated workflow lives at
+`docs/deploy-pages.workflow.yml` because the token used to push this repository does not have the GitHub `workflow`
+scope. To switch to Actions-based deploys, copy that file to `.github/workflows/deploy.yml` and set
+Settings -> Pages -> Source: GitHub Actions.
+
+The public site renders today. Authentication and wallet screens need the two Supabase environment values,
+which means the backend project has to exist first (the free-tier project slot and the Monnify sandbox keys are
+the two open items).
+
+## What is verified so far
+
+- `npm run build` passes with no TypeScript errors.
+- The live Pages build renders the landing page, all marketing/legal pages, and the auth screens.
+- A direct deep link (`/login`, `/transactions/...`) returns the SPA through the `404.html` fallback.
