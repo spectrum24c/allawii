@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
         mode: "demo",
         resolved: false,
         account_name: null,
-        message: "Monnify test keys are not configured yet, so account names cannot be resolved. Enter the beneficiary name manually; the demo will record it as unverified.",
+        message: "Monnify checkout is not fully configured (a valid contract code is still needed), so account names cannot be resolved. Enter the beneficiary name manually; the demo will record it as unverified.",
       });
     }
 
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       return json({
         mode: "demo",
         simulated: true,
-        message: "Simulated disbursement (Monnify test keys not configured). No bank transfer occurred.",
+        message: "Demo disbursement only: Monnify is not fully configured, so no bank transfer occurred.",
         transaction: settled,
       });
     }

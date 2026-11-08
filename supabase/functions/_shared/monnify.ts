@@ -6,7 +6,9 @@ const API_KEY = Deno.env.get("MONNIFY_API_KEY") ?? "";
 const SECRET_KEY = Deno.env.get("MONNIFY_SECRET_KEY") ?? "";
 const CONTRACT_CODE = Deno.env.get("MONNIFY_CONTRACT_CODE") ?? "";
 
-export const monnifyConfigured = () => Boolean(API_KEY && SECRET_KEY);
+// checkout and reserved accounts both need a contract code, so a key pair alone is not enough
+// to claim Monnify is ready: without it the platform falls back to labelled demo credits.
+export const monnifyConfigured = () => Boolean(API_KEY && SECRET_KEY && CONTRACT_CODE);
 
 export type MonnifyResult<T> = { ok: boolean; status: number; data: T | null; error: string | null; raw?: unknown };
 
@@ -62,7 +64,7 @@ export async function initTransaction(args: {
   redirectUrl?: string;
 }) {
   return call<{ checkoutUrl: string; transactionReference: string; paymentReference: string }>(
-    "/api/v1/merchant/transactions/init",
+    "/api/v1/merchant/transactions/init-transaction",
     {
       method: "POST",
       body: JSON.stringify({

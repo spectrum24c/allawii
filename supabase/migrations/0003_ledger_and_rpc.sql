@@ -3,28 +3,28 @@
 
 -- ---------------------------------------------------------------- helpers
 create or replace function allawii_private.setting(p_key text, p_default jsonb default '{}'::jsonb)
-returns jsonb language sql stable security definer set search_path = public, pg_temp as $$
+returns jsonb language sql stable security definer set search_path = public, extensions, pg_temp as $$
   select coalesce((select value from public.app_settings where key = p_key), p_default);
 $$;
 
 create or replace function allawii_private.platform()
-returns jsonb language sql stable security definer set search_path = public, pg_temp as $$
+returns jsonb language sql stable security definer set search_path = public, extensions, pg_temp as $$
   select coalesce((select value from public.app_settings where key = 'platform'),
     '{"demo_mode": true, "currency": "NGN"}'::jsonb);
 $$;
 
 create or replace function public.is_admin(p_user uuid default auth.uid())
-returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+returns boolean language sql stable security definer set search_path = public, extensions, pg_temp as $$
   select exists (select 1 from public.user_roles where user_id = p_user and role = 'admin');
 $$;
 
 create or replace function public.is_staff(p_user uuid default auth.uid())
-returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+returns boolean language sql stable security definer set search_path = public, extensions, pg_temp as $$
   select exists (select 1 from public.user_roles where user_id = p_user and role in ('admin', 'support'));
 $$;
 
 create or replace function allawii_private.assert_admin()
-returns uuid language plpgsql stable security definer set search_path = public, pg_temp as $$
+returns uuid language plpgsql stable security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid();
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED' using errcode = 'P0001'; end if;
@@ -33,20 +33,20 @@ begin
 end $$;
 
 create or replace function allawii_private.notify_user(p_user uuid, p_type notification_type, p_title text, p_body text default null, p_link text default null)
-returns void language sql security definer set search_path = public, pg_temp as $$
+returns void language sql security definer set search_path = public, extensions, pg_temp as $$
   insert into public.notifications (user_id, type, title, body, link)
   values (p_user, p_type, p_title, p_body, p_link);
 $$;
 
 create or replace function allawii_private.audit(p_actor_type actor_type, p_actor uuid, p_action text, p_entity_type text, p_entity_id text, p_before jsonb default null, p_after jsonb default null)
-returns void language sql security definer set search_path = public, pg_temp as $$
+returns void language sql security definer set search_path = public, extensions, pg_temp as $$
   insert into public.audit_logs (actor_type, actor_id, action, entity_type, entity_id, before_data, after_data)
   values (p_actor_type, p_actor, p_action, p_entity_type, p_entity_id, p_before, p_after);
 $$;
 
 -- ---------------------------------------------------------------- balance projection
 create or replace function allawii_private.recalc_wallet(p_wallet uuid)
-returns void language plpgsql security definer set search_path = public, pg_temp as $$
+returns void language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_avail bigint; v_pending bigint; v_savings bigint;
 begin
   select
@@ -79,7 +79,7 @@ create or replace function allawii_private.post_entry(
   p_description text default null,
   p_idempotency text default null
 ) returns public.ledger_entries
-language plpgsql security definer set search_path = public, pg_temp as $$
+language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_row public.ledger_entries; v_existing public.ledger_entries; v_avail bigint;
 begin
   if p_amount is null or p_amount <= 0 then raise exception 'INVALID_AMOUNT'; end if;
@@ -107,7 +107,7 @@ end $$;
 
 -- ---------------------------------------------------------------- auth bootstrap
 create or replace function allawii_private.handle_new_user()
-returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+returns trigger language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_name text; v_phone text; v_dob date; v_wallet uuid;
 begin
   v_name := coalesce(nullif(trim(new.raw_user_meta_data ->> 'full_name'), ''), split_part(new.email, '@', 1));
@@ -143,7 +143,7 @@ create trigger on_auth_user_created after insert on auth.users
 
 -- ---------------------------------------------------------------- profile & security
 create or replace function public.rpc_update_profile(p_full_name text default null, p_phone text default null, p_dob date default null)
-returns public.profiles language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.profiles language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_row public.profiles;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -157,13 +157,13 @@ begin
 end $$;
 
 create or replace function public.rpc_complete_onboarding()
-returns void language plpgsql security definer set search_path = public, pg_temp as $$
+returns void language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 begin
   update public.profiles set onboarding_completed = true, updated_at = now() where id = auth.uid();
 end $$;
 
 create or replace function public.rpc_set_pin(p_pin text)
-returns void language plpgsql security definer set search_path = public, pg_temp as $$
+returns void language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid();
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -175,7 +175,7 @@ begin
 end $$;
 
 create or replace function allawii_private.check_pin(p_uid uuid, p_pin text)
-returns void language plpgsql security definer set search_path = public, pg_temp as $$
+returns void language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_sec public.user_security;
 begin
   select * into v_sec from public.user_security where user_id = p_uid;
@@ -194,7 +194,7 @@ end $$;
 
 -- ---------------------------------------------------------------- KYC
 create or replace function public.rpc_submit_kyc(p_bvn text default null, p_nin text default null, p_consent boolean default false)
-returns public.kyc_profiles language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.kyc_profiles language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_row public.kyc_profiles; v_demo boolean;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -241,7 +241,7 @@ returns table (
   wallet_id uuid, currency text, wallet_status wallet_status,
   available_minor bigint, pending_minor bigint, savings_minor bigint,
   total_credited_minor bigint, total_debited_minor bigint
-) language sql stable security definer set search_path = public, pg_temp as $$
+) language sql stable security definer set search_path = public, extensions, pg_temp as $$
   select w.id, w.currency, w.status, w.available_balance_minor, w.pending_balance_minor, w.savings_balance_minor,
          coalesce((select sum(amount_minor) from public.ledger_entries le where le.wallet_id = w.id and le.direction = 'CREDIT' and le.status = 'POSTED'), 0),
          coalesce((select sum(amount_minor) from public.ledger_entries le where le.wallet_id = w.id and le.direction = 'DEBIT' and le.status = 'POSTED'), 0)
@@ -249,7 +249,7 @@ returns table (
 $$;
 
 create or replace function public.rpc_wallet_limits()
-returns jsonb language sql stable security definer set search_path = public, pg_temp as $$
+returns jsonb language sql stable security definer set search_path = public, extensions, pg_temp as $$
   select jsonb_build_object(
     'min_transfer_minor', coalesce((allawii_private.platform() ->> 'min_transfer_minor')::bigint, 10000),
     'max_transfer_minor', coalesce((allawii_private.platform() ->> 'max_transfer_minor')::bigint, 50000000),
@@ -266,7 +266,7 @@ $$;
 -- reference and this only records a PENDING intent until the webhook/verify
 -- step confirms it.
 create or replace function public.rpc_deposit_start(p_amount_minor bigint, p_channel text default 'demo')
-returns public.transactions language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.transactions language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_wallet public.wallets; v_tx public.transactions;
         v_demo boolean; v_ref text; v_fee bigint := 0;
 begin
@@ -312,7 +312,7 @@ end $$;
 create or replace function public.rpc_deposit_settle(
   p_client_reference text, p_provider_reference text, p_success boolean, p_reason text default null
 ) returns public.transactions
-language plpgsql security definer set search_path = public, pg_temp as $$
+language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_tx public.transactions;
 begin
   if coalesce(auth.jwt() ->> 'role', '') not in ('service_role') then
@@ -342,7 +342,7 @@ end $$;
 -- ---------------------------------------------------------------- beneficiaries
 create or replace function public.rpc_create_beneficiary(
   p_bank_code text, p_bank_name text, p_account_number text, p_account_name text, p_verified boolean default false
-) returns public.beneficiaries language plpgsql security definer set search_path = public, pg_temp as $$
+) returns public.beneficiaries language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_row public.beneficiaries;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -365,7 +365,7 @@ end $$;
 
 -- ---------------------------------------------------------------- transfers
 create or replace function public.rpc_transfer_quote(p_amount_minor bigint)
-returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+returns jsonb language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_limits jsonb := public.rpc_wallet_limits();
         v_fee bigint; v_avail bigint; v_today bigint;
 begin
@@ -391,7 +391,7 @@ end $$;
 
 create or replace function public.rpc_initiate_transfer(
   p_beneficiary_id uuid, p_amount_minor bigint, p_narration text default null, p_pin text default null
-) returns public.transactions language plpgsql security definer set search_path = public, pg_temp as $$
+) returns public.transactions language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_wallet public.wallets; v_ben public.beneficiaries;
         v_tx public.transactions; v_fee bigint; v_limits jsonb := public.rpc_wallet_limits();
         v_today bigint; v_ref text; v_avail bigint;
@@ -442,7 +442,7 @@ end $$;
 
 create or replace function public.rpc_settle_transfer(
   p_transaction_id uuid, p_success boolean, p_provider_reference text default null, p_reason text default null
-) returns public.transactions language plpgsql security definer set search_path = public, pg_temp as $$
+) returns public.transactions language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_tx public.transactions; v_role text := coalesce(auth.jwt() ->> 'role', '');
 begin
   if v_role <> 'service_role' and not public.is_admin() then raise exception 'FORBIDDEN'; end if;
@@ -477,7 +477,7 @@ begin
 end $$;
 
 create or replace function public.rpc_cancel_transfer(p_transaction_id uuid)
-returns public.transactions language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.transactions language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_tx public.transactions;
 begin
   select * into v_tx from public.transactions where id = p_transaction_id and user_id = v_uid for update;
@@ -493,7 +493,7 @@ end $$;
 create or replace function public.rpc_savings_create(
   p_name text, p_target_minor bigint, p_target_date date default null,
   p_policy withdrawal_policy default 'FLEXIBLE', p_emoji text default null
-) returns public.savings_goals language plpgsql security definer set search_path = public, pg_temp as $$
+) returns public.savings_goals language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_wallet uuid; v_row public.savings_goals;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -511,7 +511,7 @@ end $$;
 create or replace function public.rpc_savings_update(
   p_goal_id uuid, p_name text default null, p_target_minor bigint default null,
   p_target_date date default null, p_policy withdrawal_policy default null, p_emoji text default null
-) returns public.savings_goals language plpgsql security definer set search_path = public, pg_temp as $$
+) returns public.savings_goals language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_row public.savings_goals;
 begin
   update public.savings_goals set
@@ -527,7 +527,7 @@ begin
 end $$;
 
 create or replace function public.rpc_savings_contribute(p_goal_id uuid, p_amount_minor bigint)
-returns public.savings_goals language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.savings_goals language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_goal public.savings_goals; v_wallet public.wallets; v_tx public.transactions;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -560,7 +560,7 @@ begin
 end $$;
 
 create or replace function public.rpc_savings_withdraw(p_goal_id uuid, p_amount_minor bigint)
-returns public.savings_goals language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.savings_goals language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_goal public.savings_goals; v_wallet public.wallets; v_tx public.transactions;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -595,7 +595,7 @@ begin
 end $$;
 
 create or replace function public.rpc_savings_set_status(p_goal_id uuid, p_status goal_status)
-returns public.savings_goals language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.savings_goals language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_goal public.savings_goals; v_wallet public.wallets; v_tx_id uuid;
 begin
   select * into v_goal from public.savings_goals where id = p_goal_id and user_id = v_uid for update;
@@ -621,7 +621,7 @@ end $$;
 
 -- ---------------------------------------------------------------- support
 create or replace function public.rpc_create_ticket(p_subject text, p_category text default 'general', p_message text default null)
-returns public.support_tickets language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.support_tickets language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_row public.support_tickets;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -639,7 +639,7 @@ begin
 end $$;
 
 create or replace function public.rpc_reply_ticket(p_ticket_id uuid, p_body text)
-returns public.support_messages language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.support_messages language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_row public.support_messages; v_staff boolean := public.is_staff();
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -657,7 +657,7 @@ end $$;
 
 -- ---------------------------------------------------------------- notifications
 create or replace function public.rpc_mark_notifications_read(p_ids uuid[] default null)
-returns int language plpgsql security definer set search_path = public, pg_temp as $$
+returns int language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_count int;
 begin
   update public.notifications set read_at = now()

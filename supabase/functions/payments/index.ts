@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
   if (action === "verify-deposit") {
     const reference = String(body.reference ?? "");
     if (!reference) return json({ error: "reference required" }, 400);
-    if (!monnifyConfigured()) return json({ error: "Monnify is not configured on this deployment" }, 400);
+    if (!monnifyConfigured()) return json({ error: "Monnify checkout is not configured on this deployment (contract code missing)" }, 400);
 
     const { data: tx } = await client.from("transactions").select("*").eq("client_reference", reference).single();
     if (!tx) return json({ error: "transaction not found" }, 404);

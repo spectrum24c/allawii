@@ -6,7 +6,7 @@ create or replace function public.rpc_funding_account_set(
   p_account_number text default null, p_bank_name text default null, p_bank_code text default null,
   p_account_name text default null, p_provider_reference text default null, p_failure_reason text default null
 ) returns public.funding_accounts
-language plpgsql security definer set search_path = public, pg_temp as $$
+language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_row public.funding_accounts;
 begin
   if coalesce(auth.jwt() ->> 'role', '') <> 'service_role' and not public.is_admin() then
@@ -39,7 +39,7 @@ end $$;
 
 -- ---------- client-safe security status ----------
 create or replace function public.rpc_security_status()
-returns jsonb language sql stable security definer set search_path = public, pg_temp as $$
+returns jsonb language sql stable security definer set search_path = public, extensions, pg_temp as $$
   select jsonb_build_object(
     'pin_set', (select pin_hash is not null from public.user_security where user_id = auth.uid()),
     'pin_set_at', (select pin_set_at from public.user_security where user_id = auth.uid()),
@@ -49,7 +49,7 @@ $$;
 
 -- ---------- WhatsApp linking ----------
 create or replace function public.rpc_whatsapp_start_link()
-returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+returns jsonb language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_uid uuid := auth.uid(); v_code text;
 begin
   if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -65,7 +65,7 @@ end $$;
 
 -- ---------- admin ----------
 create or replace function public.rpc_admin_stats()
-returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+returns jsonb language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_admin uuid := allawii_private.assert_admin(); v_out jsonb;
 begin
   select jsonb_build_object(
@@ -91,7 +91,7 @@ returns table (
   id uuid, full_name text, email citext, phone_number text, status account_status,
   kyc_status kyc_status, available_minor bigint, savings_minor bigint,
   goals_count bigint, tx_count bigint, created_at timestamptz
-) language plpgsql security definer set search_path = public, pg_temp as $$
+) language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_admin uuid := allawii_private.assert_admin();
 begin
   return query
@@ -113,7 +113,7 @@ begin
 end $$;
 
 create or replace function public.rpc_admin_set_account_status(p_user_id uuid, p_status account_status, p_reason text default null)
-returns public.profiles language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.profiles language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_admin uuid := allawii_private.assert_admin(); v_row public.profiles; v_before jsonb;
 begin
   select to_jsonb(p) into v_before from public.profiles p where id = p_user_id;
@@ -132,7 +132,7 @@ begin
 end $$;
 
 create or replace function public.rpc_admin_kyc_decision(p_user_id uuid, p_decision kyc_status, p_reason text default null)
-returns public.kyc_profiles language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.kyc_profiles language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_admin uuid := allawii_private.assert_admin(); v_row public.kyc_profiles;
 begin
   if p_decision not in ('VERIFIED', 'REJECTED', 'REVIEW', 'PENDING') then
@@ -154,12 +154,18 @@ begin
   return v_row;
 end $$;
 
-create or replace function public.rpc_admin_adjust_wallet(p_user_id uuid, p_amount_minor bigint, p_direction entry_direction, p_reason text)
-returns public.wallets language plpgsql security definer set search_path = public, pg_temp as $$
+-- the earlier enum-typed signature would remain as an overload; drop it so PostgREST can resolve the name
+drop function if exists public.rpc_admin_adjust_wallet(uuid, bigint, entry_direction, text);
+
+create or replace function public.rpc_admin_adjust_wallet(p_user_id uuid, p_amount_minor bigint, p_direction text, p_reason text)
+returns public.wallets language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_admin uuid := allawii_private.assert_admin(); v_wallet public.wallets; v_tx public.transactions;
 begin
   if coalesce(trim(p_reason), '') = '' then raise exception 'REASON_REQUIRED'; end if;
   if p_amount_minor is null or p_amount_minor <= 0 then raise exception 'INVALID_AMOUNT'; end if;
+  -- text parameter (not the enum) so PostgREST can resolve the function by name
+  p_direction := upper(coalesce(trim(p_direction), ''));
+  if p_direction not in ('CREDIT', 'DEBIT') then raise exception 'INVALID_DIRECTION'; end if;
 
   select * into v_wallet from public.wallets where user_id = p_user_id for update;
   if not found then raise exception 'WALLET_NOT_FOUND'; end if;
@@ -172,9 +178,9 @@ begin
 
   perform allawii_private.post_entry(v_wallet.id,
     case when p_direction = 'CREDIT' then 'ADJUSTMENT_CREDIT'::ledger_entry_type else 'ADJUSTMENT_DEBIT'::ledger_entry_type end,
-    p_direction, p_amount_minor, v_tx.id, null, 'POSTED', p_reason, 'adj:' || v_tx.id::text);
+    p_direction::entry_direction, p_amount_minor, v_tx.id, null, 'POSTED', p_reason, 'adj:' || v_tx.id::text);
 
-  perform allawii_private.notify_user(p_user_id, case when p_direction = 'CREDIT' then 'CREDIT' else 'DEBIT' end,
+  perform allawii_private.notify_user(p_user_id, (case when p_direction = 'CREDIT' then 'CREDIT' else 'DEBIT' end)::notification_type,
     'Balance adjustment', p_reason, '/transactions');
   perform allawii_private.audit('ADMIN', v_admin, 'WALLET_ADJUSTMENT', 'wallets', v_wallet.id::text, null,
     jsonb_build_object('amount_minor', p_amount_minor, 'direction', p_direction, 'reason', p_reason));
@@ -184,7 +190,7 @@ begin
 end $$;
 
 create or replace function public.rpc_admin_update_settings(p_patch jsonb)
-returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+returns jsonb language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_admin uuid := allawii_private.assert_admin(); v_new jsonb;
 begin
   insert into public.app_settings (key, value) values ('platform', coalesce(allawii_private.platform(), '{}'::jsonb) || p_patch)
@@ -195,7 +201,7 @@ begin
 end $$;
 
 create or replace function public.rpc_admin_set_ticket_status(p_ticket_id uuid, p_status ticket_status)
-returns public.support_tickets language plpgsql security definer set search_path = public, pg_temp as $$
+returns public.support_tickets language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_admin uuid := allawii_private.assert_admin(); v_row public.support_tickets;
 begin
   update public.support_tickets set status = p_status, updated_at = now() where id = p_ticket_id returning * into v_row;
@@ -212,6 +218,6 @@ grant execute on function public.rpc_admin_stats() to authenticated;
 grant execute on function public.rpc_admin_users(text, int, int) to authenticated;
 grant execute on function public.rpc_admin_set_account_status(uuid, account_status, text) to authenticated;
 grant execute on function public.rpc_admin_kyc_decision(uuid, kyc_status, text) to authenticated;
-grant execute on function public.rpc_admin_adjust_wallet(uuid, bigint, entry_direction, text) to authenticated;
+grant execute on function public.rpc_admin_adjust_wallet(uuid, bigint, text, text) to authenticated;
 grant execute on function public.rpc_admin_update_settings(jsonb) to authenticated;
 grant execute on function public.rpc_admin_set_ticket_status(uuid, ticket_status) to authenticated;

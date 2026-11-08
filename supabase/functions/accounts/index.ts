@@ -35,11 +35,11 @@ Deno.serve(async (req) => {
 
     if (!monnifyConfigured()) {
       // No Monnify test keys on this deployment: never invent an account number.
-      await adminClient().from("funding_accounts").update({ status: "NOT_PROVISIONED", failure_reason: "Monnify test credentials not configured" }).eq("user_id", user.id);
+      await adminClient().from("funding_accounts").update({ status: "NOT_PROVISIONED", failure_reason: "Monnify not fully configured (contract code missing)" }).eq("user_id", user.id);
       return json({
         mode: "demo",
         funding_account: null,
-        message: "Monnify test keys are not configured, so no real funding account can be created. Use the demo top-up to test the wallet, or add MONNIFY_API_KEY / MONNIFY_SECRET_KEY / MONNIFY_CONTRACT_CODE.",
+        message: "Monnify API keys are present but the contract code is not valid yet, so no real funding account can be created. Use the demo top-up, or set a valid MONNIFY_CONTRACT_CODE.",
       });
     }
 

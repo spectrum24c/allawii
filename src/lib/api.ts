@@ -67,8 +67,13 @@ export async function getProfile(): Promise<Profile> {
   return data as Profile;
 }
 
+// kyc_profiles is column-restricted for the authenticated role (BVN/NIN hashes and the
+// raw consent record stay server-side), so ask only for the columns the UI needs.
+const KYC_COLUMNS =
+  "user_id, kyc_status, verification_level, verification_provider, verified_at, submitted_at, failure_reason, bvn_last4, nin_last4, updated_at";
+
 export async function getKyc(): Promise<KycProfile> {
-  const { data, error } = await supabase.from("kyc_profiles").select("*").single();
+  const { data, error } = await supabase.from("kyc_profiles").select(KYC_COLUMNS).single();
   fail(error);
   return data as KycProfile;
 }

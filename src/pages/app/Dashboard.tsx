@@ -161,7 +161,11 @@ export default function Dashboard() {
 }
 
 export function TxRow({ tx }: { tx: Transaction }) {
-  const credit = ["DEPOSIT", "REVERSAL", "REFUND"].includes(tx.type) || (tx.type === "SAVINGS" && /withdraw|releas|closed/i.test(tx.narration ?? ""));
+  const adjustmentDirection = String((tx.metadata as Record<string, unknown> | null)?.direction ?? "").toUpperCase();
+  const credit =
+    tx.type === "ADJUSTMENT"
+      ? adjustmentDirection === "CREDIT"
+      : ["DEPOSIT", "REVERSAL", "REFUND"].includes(tx.type) || (tx.type === "SAVINGS" && /withdraw|releas|closed/i.test(tx.narration ?? ""));
   return (
     <Link to={`/transactions/${tx.id}`} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[#fafaf7]">
       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${credit ? "bg-[var(--color-brand-soft)]" : "bg-[#f1f1ec]"}`}>
