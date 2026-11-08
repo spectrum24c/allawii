@@ -53,19 +53,29 @@ Deno.serve(async (req) => {
 
     // A previous run may have reserved the account without us storing the number.
     const reserved = await getReservedAccount(reference);
+    // The reserved account name becomes the bank-facing account name, so it must
+    // be the customer's own name, never a product label.
+    const holderName = (profile?.full_name ?? "Allawii student").replace(/\s+/g, " ").trim();
     const result = reserved.ok && reserved.data
       ? reserved
       : await createReservedAccount({
       accountReference: reference,
-      accountName: `Allawii / ${profile?.full_name ?? "Student"}`,
+      accountName: holderName,
       customerEmail: profile?.email ?? user.email ?? "",
       customerName: profile?.full_name ?? "Allawii student",
       getAllAvailableBanks: true,
     });
 
     if (!result.ok || !result.data) {
-      await adminClient().from("funding_accounts").update({ status: "FAILED", failure_reason: result.error }).eq("user_id", user.id);
-      return json({ error: result.error ?? "Monnify did not create the account" }, 502);
+      const raw = result.error ?? "Monnify did not create the account";
+      // Translate provider wording into something a student can act on, and keep
+      // the raw message in the row so support can see exactly what happened.
+      const kycProblem = /kyc/i.test(raw);
+      const message = kycProblem
+        ? "Monnify rejected this because the customer KYC record is incomplete. Finish the BVN step of your identity check, then retry."
+        : raw;
+      await adminClient().from("funding_accounts").update({ status: "FAILED", failure_reason: `${message} (provider: ${raw})` }).eq("user_id", user.id);
+      return json({ error: message }, 502);
     }
 
     // The read endpoint nests the numbers under accounts[] while create returns

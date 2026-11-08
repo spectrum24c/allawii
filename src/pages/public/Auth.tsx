@@ -5,7 +5,7 @@ import {
   Lock, Mail, Phone, ShieldCheck, User, Wallet,
 } from "lucide-react";
 import { Alert, Button, Field, Input, useToast } from "../../components/ui";
-import { auth } from "../../lib/api";
+import { actions, auth } from "../../lib/api";
 import { humanError } from "../../lib/errors";
 import { isConfigured } from "../../lib/supabase";
 
@@ -259,8 +259,11 @@ export function Login() {
     setError(null);
     try {
       await auth.signIn(email, password);
+      // An account without a transaction PIN cannot move money, so finish that
+      // step before dropping the user on the dashboard.
+      const status = await actions.securityStatus().catch(() => null);
       push({ tone: "success", title: "Welcome back" });
-      navigate("/dashboard");
+      navigate(status && !status.pin_set ? "/security-setup" : "/dashboard");
     } catch (err) {
       setError(humanError(err));
     } finally {
@@ -356,8 +359,8 @@ export function Signup() {
         dob: form.dob || undefined,
       });
       if (result.session) {
-        push({ tone: "success", title: "Account created" });
-        navigate("/kyc");
+        push({ tone: "success", title: "Account created", body: "Next: create the PIN that authorises your transfers." });
+        navigate("/security-setup");
       } else {
         setSent(true);
       }

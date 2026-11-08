@@ -6,6 +6,7 @@ import Landing from "./pages/public/Landing";
 import InfoPage from "./pages/public/InfoPage";
 import { ForgotPassword, Login, SetPassword, Signup } from "./pages/public/Auth";
 import Dashboard from "./pages/app/Dashboard";
+import SecuritySetup from "./pages/app/SecuritySetup";
 import WalletPage from "./pages/app/Wallet";
 import Deposit from "./pages/app/Deposit";
 import Transfer from "./pages/app/Transfer";
@@ -87,6 +88,7 @@ export default function App() {
               <Route path="/savings/:id" element={<Protected><SavingsDetail /></Protected>} />
               <Route path="/transactions" element={<Protected><TransactionsPage /></Protected>} />
               <Route path="/transactions/:id" element={<Protected><TransactionDetail /></Protected>} />
+              <Route path="/security-setup" element={<Protected><SecuritySetup /></Protected>} />
               <Route path="/kyc" element={<Protected><Kyc /></Protected>} />
               <Route path="/settings" element={<Protected><Settings /></Protected>} />
               <Route path="/profile" element={<Protected><Profile /></Protected>} />

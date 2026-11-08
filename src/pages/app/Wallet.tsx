@@ -11,7 +11,7 @@ import { supabase } from "../../lib/supabase";
 import type { FundingAccount } from "../../lib/types";
 
 export default function WalletPage() {
-  const { wallet, kyc, limits, refresh } = useAuth();
+  const { profile, wallet, kyc, limits, refresh } = useAuth();
   const [account, setAccount] = useState<FundingAccount | null>(null);
   const [loadingAccount, setLoadingAccount] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -98,7 +98,15 @@ export default function WalletPage() {
                       <Copy className="h-3.5 w-3.5 text-[var(--color-ink-soft)]" />
                     </button>
                   </div>
-                  <p className="mt-1 text-[13px] text-[var(--color-ink-soft)]">{account.bank_name} · {account.account_name}</p>
+                  <p className="mt-1 text-[13px] text-[var(--color-ink-soft)]">
+                    {account.bank_name} · <span className="font-semibold text-[var(--color-ink)]">{profile?.full_name ?? account.account_name}</span>
+                  </p>
+                  {profile?.full_name && account.account_name && account.account_name.toUpperCase() !== profile.full_name.toUpperCase() && (
+                    <p className="mt-1.5 max-w-md text-[11.5px] leading-relaxed text-[var(--color-ink-faint)]">
+                      Monnify labels this account <span className="font-semibold">{account.account_name}</span> in its sandbox
+                      because it prefixes the contract name and shortens yours. A live account carries your full name.
+                    </p>
+                  )}
                   <p className="mt-1 font-mono text-[11px] text-[var(--color-ink-soft)]/80">{account.account_reference}</p>
                 </div>
                 <Badge tone="VERIFIED">Active</Badge>
