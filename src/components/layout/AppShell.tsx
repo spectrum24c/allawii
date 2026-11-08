@@ -54,29 +54,39 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <nav className="mt-7 flex flex-1 flex-col gap-1">
           {nav.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors ${
-                isActive ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-dark)]" : "text-[var(--color-ink-soft)] hover:bg-black/[.03] hover:text-[var(--color-ink)]"
-              }`}>
-              <Icon className="h-4 w-4" />
-              {label}
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `group relative flex items-center gap-3 rounded-[13px] px-3 py-2.5 text-[13px] font-semibold transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] ${
+                  isActive ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-dark)]" : "text-[var(--color-ink-soft)] hover:bg-black/[.035] hover:text-[var(--color-ink)]"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon className={`h-4 w-4 transition-transform duration-300 ${isActive ? "" : "group-hover:scale-105"}`} />
+                  {label}
+                  {isActive && <span className="absolute right-3 h-1.5 w-1.5 rounded-full bg-[var(--color-brand)]" />}
+                </>
+              )}
             </NavLink>
           ))}
           {role !== "student" && (
             <NavLink to="/admin" className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors ${
-                isActive ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-dark)]" : "text-[var(--color-ink-soft)] hover:bg-black/[.03] hover:text-[var(--color-ink)]"
+              `flex items-center gap-3 rounded-[13px] px-3 py-2.5 text-[13px] font-semibold transition-all duration-300 ${
+                isActive ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-dark)]" : "text-[var(--color-ink-soft)] hover:bg-black/[.035] hover:text-[var(--color-ink)]"
               }`}>
               <Shield className="h-4 w-4" /> Admin
             </NavLink>
           )}
         </nav>
 
-        <div className="rounded-2xl bg-[var(--color-brand-soft)] p-3.5">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-brand-dark)]">Available</p>
-          <p className="mt-1 text-lg font-semibold tnum">{naira(wallet?.available_minor)}</p>
-          <Link to="/wallet" className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-brand-dark)]">
-            <CreditCard className="h-3.5 w-3.5" /> Fund wallet
+        <div className="panel-forest grain rounded-[16px] p-4">
+          <p className="text-[9.5px] font-bold uppercase tracking-[.16em] text-white/45">Available</p>
+          <p className="mt-1 text-[19px] font-extrabold tracking-[-0.03em] text-white tnum">{naira(wallet?.available_minor)}</p>
+          <Link to="/wallet" className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold text-[var(--color-lime)] ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/15">
+            <CreditCard className="h-3 w-3" /> Fund wallet
           </Link>
         </div>
 
@@ -90,7 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--color-paper)]/85 backdrop-blur lg:pl-[248px]">
+      <header className="sticky top-0 z-30 border-b border-[var(--color-line)]/80 bg-[var(--color-paper)]/80 backdrop-blur-xl lg:pl-[248px]">
         <div className="mx-auto flex h-16 max-w-[1120px] items-center gap-3 px-4 sm:px-6">
           <button className="-ml-2 rounded-lg p-2 lg:hidden" onClick={() => setMenuOpen(true)} aria-label="Open menu">
             <Menu className="h-5 w-5" />
@@ -171,7 +181,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <main className="mx-auto max-w-[1120px] px-4 pb-28 pt-5 sm:px-6 lg:pb-12 lg:pl-[272px]">
         {kycIncomplete && (
-          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-[#f3e0c0] bg-[#fdf6e9] px-4 py-3">
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[16px] bg-[#fdf6e9] px-4 py-3 ring-1 ring-[#f2e2c4]">
             <Badge tone={kyc?.kyc_status ?? "NOT_STARTED"}>{kyc?.kyc_status?.replace("_", " ") ?? "NOT STARTED"}</Badge>
             <p className="text-[13px] text-[#7a4a10]">
               {kyc?.kyc_status === "REJECTED" ? "Your identity check needs attention." : "Verify your identity to unlock deposits and transfers."}
@@ -182,14 +192,24 @@ export function AppShell({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-line)] bg-white/95 backdrop-blur lg:hidden">
-        <div className="mx-auto flex max-w-md items-stretch justify-between px-2 py-1.5">
+      <nav className="fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(10px,env(safe-area-inset-bottom))] lg:hidden">
+        <div className="island mx-auto flex max-w-md items-stretch justify-between px-1.5 py-1.5">
           {mobileNav.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} className={({ isActive }) =>
-              `flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10.5px] font-medium ${
-                isActive ? "text-[var(--color-brand-dark)]" : "text-[var(--color-ink-soft)]"
-              }`}>
-              <Icon className="h-5 w-5" /> {label}
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `flex flex-1 flex-col items-center gap-1 rounded-2xl py-2 text-[10px] font-semibold transition-colors duration-300 ${
+                  isActive ? "text-[var(--color-brand-dark)]" : "text-[var(--color-ink-soft)]"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon className={`h-[19px] w-[19px] transition-transform duration-300 ${isActive ? "scale-105" : ""}`} />
+                  {label}
+                </>
+              )}
             </NavLink>
           ))}
         </div>

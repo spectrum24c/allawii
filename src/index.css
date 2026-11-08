@@ -1,55 +1,158 @@
 @import "tailwindcss";
 
+/* ── Allawii design system ────────────────────────────────────────────────
+   Warm paper, forest ink, one lime accent. Hairline bezels, soft diffused
+   depth, spring motion. Every surface reads like machined hardware: an outer
+   tray, a hairline ring, an inner core with its own highlight.
+   ---------------------------------------------------------------------- */
+
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Instrument Serif", Georgia, serif;
 
-  --color-paper: #f6f6f3;
+  --color-paper: #f7f6f1;
+  --color-paper-deep: #efeee6;
   --color-card: #ffffff;
-  --color-ink: #0b1411;
-  --color-ink-soft: #48534e;
-  --color-line: #e3e4de;
-  --color-brand: #0e7c5a;
-  --color-brand-dark: #0a5c43;
-  --color-brand-soft: #e7f4ee;
-  --color-lime: #c8f169;
-  --color-danger: #b42318;
-  --color-warn: #b54708;
+  --color-ink: #0b1512;
+  --color-ink-soft: #59635c;
+  --color-ink-faint: #8a938d;
+  --color-line: #e3e3d9;
+  --color-line-strong: #cdcfc3;
 
-  --radius-card: 18px;
+  --color-brand: #0c6b4c;
+  --color-brand-dark: #075039;
+  --color-brand-soft: #e6f1ea;
+  --color-forest: #08211a;
+  --color-forest-2: #0d3228;
+  --color-lime: #d3f07d;
+  --color-danger: #b42318;
+  --color-warn: #a2590a;
+
+  --radius-card: 20px;
+  --radius-bezel: 26px;
 }
 
 html, body, #root { height: 100%; }
+
 body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-feature-settings: "ss01" 1, "cv11" 1;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
+h1, h2, h3 { letter-spacing: -0.025em; }
+
 ::selection { background: var(--color-lime); color: var(--color-ink); }
 
-/* focus ring that survives on every surface */
 :focus-visible {
   outline: 2px solid var(--color-brand);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
-@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.rise { animation: rise .45s cubic-bezier(.22,1,.36,1) both; }
+/* ── motion ────────────────────────────────────────────────────────────── */
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes rise-soft { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes drift { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(0,-14px,0) scale(1.03); } }
 @keyframes shimmer { 100% { transform: translateX(100%); } }
-.skeleton {
-  position: relative; overflow: hidden; background: #ecece7;
-}
+
+.rise { animation: rise .62s cubic-bezier(.16,1,.3,1) both; }
+.rise-soft { animation: rise-soft .5s cubic-bezier(.16,1,.3,1) both; }
+.fade { animation: fade .5s ease-out both; }
+.drift { animation: drift 14s ease-in-out infinite; }
+
+/* staggered entrance for grouped children */
+.stagger > * { animation: rise .6s cubic-bezier(.16,1,.3,1) both; }
+.stagger > *:nth-child(1) { animation-delay: .04s; }
+.stagger > *:nth-child(2) { animation-delay: .1s; }
+.stagger > *:nth-child(3) { animation-delay: .16s; }
+.stagger > *:nth-child(4) { animation-delay: .22s; }
+.stagger > *:nth-child(5) { animation-delay: .28s; }
+.stagger > *:nth-child(6) { animation-delay: .34s; }
+
+.skeleton { position: relative; overflow: hidden; background: #eceae2; }
 .skeleton::after {
   content: ""; position: absolute; inset: 0; transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent);
-  animation: shimmer 1.4s infinite;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent);
+  animation: shimmer 1.5s infinite;
 }
 
 .tnum { font-variant-numeric: tabular-nums; }
 
+/* ── surfaces ──────────────────────────────────────────────────────────── */
+/* Double bezel: a tray holding a core, with concentric radii. */
+.bezel {
+  border-radius: var(--radius-bezel);
+  background: color-mix(in oklab, white 62%, var(--color-paper-deep));
+  box-shadow: inset 0 0 0 1px rgba(11, 21, 18, .06);
+  padding: 6px;
+}
+.bezel-core {
+  border-radius: calc(var(--radius-bezel) - 6px);
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 18px 40px -28px rgba(11,21,18,.45);
+}
+.bezel-dark {
+  border-radius: var(--radius-bezel);
+  background: rgba(255,255,255,.06);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.1);
+  padding: 6px;
+}
+
+.hairline { border: 1px solid var(--color-line); }
+.soft-shadow { box-shadow: 0 1px 2px rgba(11,21,18,.04), 0 22px 44px -32px rgba(11,21,18,.4); }
+.lift { transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .5s cubic-bezier(.16,1,.3,1), border-color .35s ease; }
+.lift:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(11,21,18,.04), 0 30px 54px -34px rgba(11,21,18,.45); }
+
+.eyebrow {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+/* ── dark brand panel (auth, hero) ─────────────────────────────────────── */
+.panel-forest {
+  position: relative;
+  background:
+    radial-gradient(120% 90% at 8% 0%, #14523f 0%, transparent 58%),
+    radial-gradient(90% 80% at 100% 100%, #0b3d2e 0%, transparent 62%),
+    linear-gradient(168deg, var(--color-forest) 0%, #071c17 100%);
+  color: #f2f7f3;
+  isolation: isolate;
+  overflow: hidden;
+}
+.panel-forest::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; opacity: .5;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(80% 70% at 30% 20%, #000 20%, transparent 78%);
+}
+.grain::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .16;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.5'/></svg>");
+}
+
+/* ── nav island ────────────────────────────────────────────────────────── */
+.island {
+  border-radius: 999px;
+  background: color-mix(in oklab, white 76%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(11,21,18,.07), 0 18px 34px -26px rgba(11,21,18,.5);
+  backdrop-filter: saturate(180%) blur(18px);
+}
+
+/* thin gradient rule used under section headers */
+.rule { height: 1px; background: linear-gradient(90deg, var(--color-line), transparent); }
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
