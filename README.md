@@ -115,6 +115,9 @@ VITE_SUPABASE_ANON_KEY=<anon public key>
 VITE_BASE_PATH=/
 ```
 
+`vite.config.ts` uses `loadEnv`, so `VITE_BASE_PATH` in `.env` is respected (an inline
+`VITE_BASE_PATH=/allawii/ npm run build` also works).
+
 Only the anon key is shipped to the browser. Every table is protected by RLS, so the anon key grants nothing on
 its own. The service role key and Monnify keys exist **only** as Edge Function secrets.
 
