@@ -28,6 +28,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [limits, setLimits] = useState<Limits | null>(null);
   const [role, setRole] = useState<"student" | "support" | "admin">("student");
   const [unread, setUnread] = useState(0);
+  // Which user's profile/role we have actually finished loading. Without this
+  // the app briefly believes every fresh session is a student, which is enough
+  // to bounce an operator off /admin on a hard reload.
+  const [hydratedFor, setHydratedFor] = useState<string | null>(null);
   const loadedFor = useRef<string | null>(null);
 
   const load = useCallback(async (userId: string) => {
@@ -43,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .is("read_at", null);
     setUnread(count ?? 0);
     loadedFor.current = userId;
+    setHydratedFor(userId);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -62,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(next);
       if (!next) {
         setProfile(null); setKyc(null); setWallet(null); setRole("student"); setUnread(0);
-        loadedFor.current = null;
+        loadedFor.current = null; setHydratedFor(null);
       }
     });
     return () => sub.subscription.unsubscribe();
@@ -88,11 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     loadedFor.current = null;
+    setHydratedFor(null);
   }, []);
 
   const value = useMemo(
-    () => ({ session, loading, profile, kyc, wallet, limits, role, unread, refresh, signOut }),
-    [session, loading, profile, kyc, wallet, limits, role, unread, refresh, signOut],
+    () => ({
+      session,
+      loading: loading || Boolean(session?.user?.id && hydratedFor !== session.user.id),
+      profile, kyc, wallet, limits, role, unread, refresh, signOut,
+    }),
+    [session, loading, profile, kyc, wallet, limits, role, unread, refresh, signOut, hydratedFor],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

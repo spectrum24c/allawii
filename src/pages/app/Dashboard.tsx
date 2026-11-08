@@ -9,7 +9,7 @@ import { naira, progressPct, timeAgo, titleCase } from "../../lib/format";
 import type { SavingsGoal, Transaction } from "../../lib/types";
 
 export default function Dashboard() {
-  const { profile, wallet, kyc, limits } = useAuth();
+  const { profile, wallet, kyc, limits, role } = useAuth();
   const [txs, setTxs] = useState<Transaction[] | null>(null);
   const [goals, setGoals] = useState<SavingsGoal[] | null>(null);
 
@@ -118,7 +118,7 @@ export default function Dashboard() {
         </div>
 
         {/* kyc */}
-        {kyc?.kyc_status !== "VERIFIED" && (
+        {role === "student" && kyc?.kyc_status !== "VERIFIED" && (
           <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[var(--radius-card)] border border-[var(--color-line)] bg-white p-4">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--color-brand-soft)]">
               <Receipt className="h-4 w-4 text-[var(--color-brand-dark)]" />
