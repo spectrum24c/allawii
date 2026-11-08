@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (k.status === "fulfilled") setKyc(k.value);
     if (w.status === "fulfilled") setWallet(w.value);
     if (l.status === "fulfilled") setLimits(l.value);
-    if (r.status === "fulfilled") setRole(r.value);
+    if (r.status === "fulfilled") setRole(r.value as "student" | "support" | "admin");
     const { count } = await supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
