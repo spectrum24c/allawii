@@ -130,6 +130,19 @@ export async function singleTransfer(args: {
   });
 }
 
+// A reservation reference can only be created once, so on a retry we read the
+// existing account back instead of asking Monnify to reserve it again.
+export async function getReservedAccount(accountReference: string) {
+  return call<{
+    accountNumber: string;
+    accountName: string;
+    bankName: string;
+    bankCode: string;
+    reservationReference: string;
+    accounts: Array<{ accountNumber: string; bankName: string; bankCode: string }>;
+  }>(`/api/v2/bank-transfer/reserved-accounts/${encodeURIComponent(accountReference)}`);
+}
+
 export async function createReservedAccount(args: {
   accountReference: string;
   accountName: string;

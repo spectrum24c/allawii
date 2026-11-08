@@ -1,7 +1,7 @@
 // POST /functions/v1/accounts
 // { action: "provision-funding-account" } | { action: "banks" }
 import { json, requireUser, adminClient, cors } from "../_shared/http.ts";
-import { createReservedAccount, listBanks, monnifyConfigured } from "../_shared/monnify.ts";
+import { createReservedAccount, getReservedAccount, listBanks, monnifyConfigured } from "../_shared/monnify.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -28,7 +28,11 @@ Deno.serve(async (req) => {
     if (kyc?.kyc_status !== "VERIFIED") return json({ error: "KYC must be verified before a funding account is created" }, 400);
 
     const { data: existing } = await client.from("funding_accounts").select("*").eq("user_id", user.id).single();
-    if (existing?.status === "ACTIVE") return json({ mode: "existing", funding_account: existing });
+    // A row can be ACTIVE with no number if an earlier attempt failed before the
+    // provider returned one. Only a numbered account is final.
+    if (existing?.status === "ACTIVE" && existing.account_number) {
+      return json({ mode: "existing", funding_account: existing });
+    }
     if (existing?.status === "PENDING") return json({ error: "A funding account request is already pending", funding_account: existing }, 409);
 
     const { data: profile } = await client.from("profiles").select("full_name, email").eq("id", user.id).single();
@@ -45,8 +49,14 @@ Deno.serve(async (req) => {
 
     await client.from("funding_accounts").update({ status: "PENDING" }).eq("user_id", user.id);
 
-    const result = await createReservedAccount({
-      accountReference: existing?.account_reference ?? `ALW-${user.id.slice(0, 12).toUpperCase()}`,
+    const reference = existing?.account_reference ?? `ALW-${user.id.slice(0, 12).toUpperCase()}`;
+
+    // A previous run may have reserved the account without us storing the number.
+    const reserved = await getReservedAccount(reference);
+    const result = reserved.ok && reserved.data
+      ? reserved
+      : await createReservedAccount({
+      accountReference: reference,
       accountName: `Allawii / ${profile?.full_name ?? "Student"}`,
       customerEmail: profile?.email ?? user.email ?? "",
       customerName: profile?.full_name ?? "Allawii student",
@@ -58,13 +68,22 @@ Deno.serve(async (req) => {
       return json({ error: result.error ?? "Monnify did not create the account" }, 502);
     }
 
+    // The read endpoint nests the numbers under accounts[] while create returns
+    // them at the top level, so accept either shape.
     const primary = result.data;
+    const first = (primary.accounts ?? []).find((a) => a.accountNumber) ?? null;
+    const accountNumber = primary.accountNumber ?? first?.accountNumber ?? null;
+    if (!accountNumber) {
+      await adminClient().from("funding_accounts").update({ status: "FAILED", failure_reason: "Monnify returned no account number" }).eq("user_id", user.id);
+      return json({ error: "Monnify did not return an account number" }, 502);
+    }
+
     const { data: saved } = await adminClient().rpc("rpc_funding_account_set", {
       p_user_id: user.id,
       p_status: "ACTIVE",
-      p_account_number: primary.accountNumber,
-      p_bank_name: primary.bankName,
-      p_bank_code: primary.bankCode,
+      p_account_number: accountNumber,
+      p_bank_name: primary.bankName ?? first?.bankName ?? "Monnify",
+      p_bank_code: primary.bankCode ?? first?.bankCode ?? null,
       p_account_name: primary.accountName,
       p_provider_reference: primary.reservationReference,
       p_failure_reason: null,

@@ -104,7 +104,7 @@ export default function Dashboard() {
         {/* quick actions */}
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { to: "/deposit", label: "Add money", icon: Banknote, hint: "Card or demo" },
+            { to: "/deposit", label: "Add money", icon: Banknote, hint: limits?.demo_mode ? "Card or demo" : "Card or transfer" },
             { to: "/transfer", label: "Send money", icon: ArrowUpRight, hint: "To any bank" },
             { to: "/savings", label: "New goal", icon: PiggyBank, hint: "Save on purpose" },
             { to: "/transactions", label: "History", icon: Receipt, hint: "Receipts" },
