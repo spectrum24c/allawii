@@ -5,7 +5,7 @@ import {
   Lock, Mail, Phone, ShieldCheck, User, Wallet,
 } from "lucide-react";
 import { Alert, Button, Field, Input, useToast } from "../../components/ui";
-import { actions, auth, getMyRole } from "../../lib/api";
+import { actions, auth } from "../../lib/api";
 import { humanError } from "../../lib/errors";
 import { isConfigured } from "../../lib/supabase";
 
@@ -261,13 +261,9 @@ export function Login() {
       await auth.signIn(email, password);
       // An account without a transaction PIN cannot move money, so finish that
       // step before dropping the user on the dashboard.
-      const [status, role] = await Promise.all([
-        actions.securityStatus().catch(() => null),
-        getMyRole().catch(() => "student"),
-      ]);
+      const status = await actions.securityStatus().catch(() => null);
       push({ tone: "success", title: "Welcome back" });
-      if (role !== "student") navigate("/admin");
-      else navigate(status && !status.pin_set ? "/security-setup" : "/dashboard");
+      navigate(status && !status.pin_set ? "/security-setup" : "/dashboard");
     } catch (err) {
       setError(humanError(err));
     } finally {

@@ -318,8 +318,15 @@ export const admin = {
     rpc("rpc_admin_set_ticket_status", { p_ticket_id: ticketId, p_status: status }),
 };
 
-export async function getMyRole(): Promise<string> {
-  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "");
+export async function getMyRole(attempt = 0): Promise<string> {
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) return "student";
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  if (error && attempt < 2) {
+    await new Promise((r) => setTimeout(r, 350));
+    return getMyRole(attempt + 1);
+  }
   fail(error);
   const roles = (data ?? []).map((r) => r.role);
   if (roles.includes("admin")) return "admin";
