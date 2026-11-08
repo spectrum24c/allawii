@@ -300,6 +300,13 @@ export const admin = {
     rpc<import("./types").AdminUserRow[]>("rpc_admin_users", { p_search: search, p_limit: limit, p_offset: offset }),
   setAccountStatus: (userId: string, status: string, reason?: string) =>
     rpc("rpc_admin_set_account_status", { p_user_id: userId, p_status: status, p_reason: reason ?? null }),
+  kycQueue: (status: string | null = null) =>
+    rpc<Array<{
+      user_id: string; full_name: string; email: string; phone_number: string | null;
+      kyc_status: string; verification_level: number | null; bvn_last4: string | null;
+      nin_last4: string | null; submitted_at: string | null; failure_reason: string | null;
+      available_minor: number;
+    }>>("rpc_admin_kyc_queue", { p_status: status }),
   kycDecision: (userId: string, decision: string, reason?: string) =>
     rpc("rpc_admin_kyc_decision", { p_user_id: userId, p_decision: decision, p_reason: reason ?? null }),
   adjustWallet: (userId: string, amountMinor: number, direction: "CREDIT" | "DEBIT", reason: string) =>

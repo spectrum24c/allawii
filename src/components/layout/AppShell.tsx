@@ -39,6 +39,8 @@ export function Logo({ compact }: { compact?: boolean }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { profile, wallet, kyc, role, unread, signOut } = useAuth();
+  // Operators are not customers: the console must never nag them for an identity check.
+  const isOperator = role !== "student";
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
   const location = useLocation();
@@ -52,16 +54,16 @@ export function AppShell({ children }: { children: ReactNode }) {
     let alive = true;
     actions.securityStatus()
       .then((s) => {
-        if (alive && s && !s.pin_set && location.pathname !== "/security-setup") {
+        if (alive && s && !s.pin_set && !isOperator && location.pathname !== "/security-setup") {
           navigate("/security-setup", { replace: true });
         }
       })
       .catch(() => {});
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isOperator]);
 
-  const kycIncomplete = !kyc || kyc.kyc_status !== "VERIFIED";
+  const kycIncomplete = !isOperator && (!kyc || kyc.kyc_status !== "VERIFIED");
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)]">

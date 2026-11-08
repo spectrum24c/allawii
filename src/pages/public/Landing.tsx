@@ -39,9 +39,9 @@ export default function Landing() {
             </span>
 
             <h1 className="mt-5 text-[clamp(2.5rem,6.4vw,4.15rem)] font-extrabold leading-[0.98] tracking-[-0.04em]">
-              Money that finally
+              <span className="hero-line">Money that finally</span>
               <br />
-              <span className="font-[family-name:var(--font-display)] font-normal italic tracking-[-0.015em] text-[var(--color-brand)]">makes sense</span> for school.
+              <span className="hero-line"><span className="font-[family-name:var(--font-display)] font-normal italic tracking-[-0.015em] text-[var(--color-brand)]">makes sense</span> for school.</span>
             </h1>
 
             <p className="mt-5 max-w-[520px] text-[15px] leading-relaxed text-[var(--color-ink-soft)] sm:text-[15.5px]">
