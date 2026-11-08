@@ -56,6 +56,13 @@ function AdminOnly({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+function CustomerOnly({ children }: { children: ReactNode }) {
+  const { role, loading } = useAuth();
+  if (loading) return <div className="grid min-h-screen place-items-center"><Spinner /></div>;
+  if (role !== "student") return <Navigate to="/admin" replace />;
+  return <>{children}</>;
+}
+
 function PublicOnly({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
   if (loading) return <div className="grid min-h-screen place-items-center"><Spinner /></div>;
@@ -89,7 +96,7 @@ export default function App() {
               <Route path="/transactions" element={<Protected><TransactionsPage /></Protected>} />
               <Route path="/transactions/:id" element={<Protected><TransactionDetail /></Protected>} />
               <Route path="/security-setup" element={<Protected><SecuritySetup /></Protected>} />
-              <Route path="/kyc" element={<Protected><Kyc /></Protected>} />
+              <Route path="/kyc" element={<Protected><CustomerOnly><Kyc /></CustomerOnly></Protected>} />
               <Route path="/settings" element={<Protected><Settings /></Protected>} />
               <Route path="/profile" element={<Protected><Profile /></Protected>} />
               <Route path="/notifications" element={<Protected><Notifications /></Protected>} />

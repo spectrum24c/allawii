@@ -11,7 +11,7 @@ import { supabase } from "../../lib/supabase";
 import type { FundingAccount } from "../../lib/types";
 
 export default function WalletPage() {
-  const { profile, wallet, kyc, limits, refresh } = useAuth();
+  const { profile, wallet, kyc, limits, refresh, role } = useAuth();
   const [account, setAccount] = useState<FundingAccount | null>(null);
   const [loadingAccount, setLoadingAccount] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -22,6 +22,7 @@ export default function WalletPage() {
   // The holder of a reserved account is the customer. The bank-facing label
   // Monnify generates in sandbox is never shown as their name.
   const accountHolder = (profile?.full_name ?? "").trim() || account?.account_name || "";
+  const isOperator = role !== "student";
 
   async function load() {
     setLoadingAccount(true);
@@ -124,13 +125,19 @@ export default function WalletPage() {
                   </div>
                   <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--color-ink-soft)]">
                     {account?.failure_reason ??
-                      "A dedicated account number lets you fund your wallet with a normal bank transfer. It requires a verified identity check."}
+                      (isOperator
+                        ? "Operator accounts do not need customer verification or a funding account. Use the operations console for KYC decisions, users and ledger work."
+                        : "A dedicated account number lets you fund your wallet with a normal bank transfer. It requires a verified identity check.")}
                   </p>
                   {error && <p className="mt-2 text-[12px] text-[var(--color-danger)]">{error}</p>}
                 </div>
-                <Button size="sm" loading={busy} onClick={provision} disabled={kyc?.kyc_status !== "VERIFIED"}>
-                  {account?.status === "FAILED" ? "Retry" : "Request account"}
-                </Button>
+                {isOperator ? (
+                  <Link to="/admin"><Button size="sm" variant="secondary">Open console</Button></Link>
+                ) : (
+                  <Button size="sm" loading={busy} onClick={provision} disabled={kyc?.kyc_status !== "VERIFIED"}>
+                    {account?.status === "FAILED" ? "Retry" : "Request account"}
+                  </Button>
+                )}
               </div>
             )}
           </Card>

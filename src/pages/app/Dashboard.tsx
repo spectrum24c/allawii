@@ -22,9 +22,20 @@ export default function Dashboard() {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
+  const isOperator = role !== "student";
+
   return (
     <AppShell>
       <div className="rise">
+        {isOperator && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[var(--radius-card)] bg-[#0b241c] px-4 py-3.5 text-white ring-1 ring-black/10">
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold">You are signed in as an operator</p>
+              <p className="mt-0.5 text-[12px] text-white/60">KYC decisions, people and ledger work live in the operations console. Customer verification is not required for your account.</p>
+            </div>
+            <Link to="/admin" className="shrink-0"><Button size="sm" variant="secondary">Open operations console</Button></Link>
+          </div>
+        )}
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-[13px] text-[var(--color-ink-soft)]">{greeting},</p>

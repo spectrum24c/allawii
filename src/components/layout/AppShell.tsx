@@ -64,6 +64,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [isOperator]);
 
   const kycIncomplete = !isOperator && (!kyc || kyc.kyc_status !== "VERIFIED");
+  const accountMenu: Array<{ to: string; label: string; icon: typeof Settings }> = [
+    { to: "/profile", label: "Profile", icon: Settings },
+    ...(isOperator ? [] : [{ to: "/kyc", label: "KYC centre", icon: ShieldCheck }]),
+    { to: "/settings", label: "Security", icon: Settings },
+  ];
+  const drawerNav = [...nav, ...accountMenu];
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)]">
@@ -149,11 +155,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <p className="truncate text-[13px] font-semibold">{profile?.full_name}</p>
                     <p className="truncate text-[11.5px] text-[var(--color-ink-soft)]">{profile?.email}</p>
                   </div>
-                  {[
-                    { to: "/profile", label: "Profile", icon: Settings },
-                    { to: "/kyc", label: "KYC centre", icon: ShieldCheck },
-                    { to: "/settings", label: "Security", icon: Shield },
-                  ].map(({ to, label, icon: Icon }) => (
+                  {accountMenu.map(({ to, label, icon: Icon }) => (
                     <Link key={to} to={to} className="flex items-center gap-2.5 px-3.5 py-2 text-[13px] hover:bg-black/[.03]">
                       <Icon className="h-4 w-4 text-[var(--color-ink-soft)]" /> {label}
                     </Link>
@@ -177,8 +179,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <button onClick={() => setMenuOpen(false)} aria-label="Close menu" className="rounded-full p-2 hover:bg-black/5"><X className="h-4 w-4" /></button>
             </div>
             <div className="mt-6 flex flex-col gap-1">
-              {[...nav, { to: "/profile", label: "Profile", icon: Settings }, { to: "/kyc", label: "KYC centre", icon: ShieldCheck }, { to: "/settings", label: "Security", icon: Shield }]
-                .map(({ to, label, icon: Icon }) => (
+              {drawerNav.map(({ to, label, icon: Icon }) => (
                   <NavLink key={to} to={to} className={({ isActive }) =>
                     `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium ${isActive ? "bg-[var(--color-brand-soft)] text-[var(--color-brand-dark)]" : "text-[var(--color-ink-soft)]"}`}>
                     <Icon className="h-4 w-4" /> {label}
