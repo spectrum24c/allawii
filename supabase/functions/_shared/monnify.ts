@@ -10,6 +10,12 @@ const CONTRACT_CODE = Deno.env.get("MONNIFY_CONTRACT_CODE") ?? "";
 // to claim Monnify is ready: without it the platform falls back to labelled demo credits.
 export const monnifyConfigured = () => Boolean(API_KEY && SECRET_KEY && CONTRACT_CODE);
 
+// Monnify's sandbox will accept payments but cannot pay out to arbitrary bank
+// accounts, so payouts stay explicitly simulated until a live wallet is funded.
+// Set MONNIFY_DISBURSEMENT_MODE=live to send real disbursement calls.
+export const disbursementSimulated = () =>
+  (Deno.env.get("MONNIFY_DISBURSEMENT_MODE") ?? "simulated").toLowerCase() !== "live";
+
 export type MonnifyResult<T> = { ok: boolean; status: number; data: T | null; error: string | null; raw?: unknown };
 
 let cached: { token: string; expiresAt: number } | null = null;
@@ -95,7 +101,7 @@ export async function verifyTransaction(paymentReference: string) {
 
 export async function nameEnquiry(accountNumber: string, bankCode: string) {
   return call<{ accountName: string; accountNumber: string; bankCode: string }>(
-    `/api/v1/disbursements/account/validate?accountNumber=${encodeURIComponent(accountNumber)}&bankCode=${encodeURIComponent(bankCode)}`,
+    `/api/v2/disbursements/account/validate?accountNumber=${encodeURIComponent(accountNumber)}&bankCode=${encodeURIComponent(bankCode)}`,
   );
 }
 

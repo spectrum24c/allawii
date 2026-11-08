@@ -4,7 +4,7 @@
 // Name enquiry and disbursement never happen in the browser: the Monnify secret
 // key stays in this function's environment.
 import { json, requireUser, adminClient, cors } from "../_shared/http.ts";
-import { nameEnquiry, singleTransfer, monnifyConfigured } from "../_shared/monnify.ts";
+import { nameEnquiry, singleTransfer, monnifyConfigured, disbursementSimulated } from "../_shared/monnify.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -21,7 +21,8 @@ Deno.serve(async (req) => {
     const bankCode = String(body.bank_code ?? "");
     if (!/^[0-9]{10}$/.test(accountNumber)) return json({ error: "invalid account number" }, 400);
 
-    if (!monnifyConfigured()) {
+    const sandboxPayout = disbursementSimulated();
+    if (!monnifyConfigured() || sandboxPayout) {
       return json({
         mode: "demo",
         resolved: false,
@@ -58,10 +59,14 @@ Deno.serve(async (req) => {
         p_provider_reference: `DEMO-${tx.client_reference}`,
         p_reason: null,
       });
+      // Label the row itself, so history can never be read as a real bank payout.
+      await adminClient().from("transactions").update({ provider: "simulated" }).eq("id", tx.id);
       return json({
         mode: "demo",
         simulated: true,
-        message: "Demo disbursement only: Monnify is not fully configured, so no bank transfer occurred.",
+        message: sandboxPayout
+          ? "Sandbox payout simulated: the payment provider is connected, but sandbox accounts cannot receive real bank transfers. No money left the wallet for a bank."
+          : "Demo disbursement only: Monnify is not fully configured, so no bank transfer occurred.",
         transaction: settled,
       });
     }
