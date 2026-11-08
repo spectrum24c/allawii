@@ -29,7 +29,10 @@ export default function Deposit() {
     actions.verifyDeposit(reference)
       .then((res) => {
         setResult({ mode: "monnify", reference });
-        push({ tone: res.status === "PAID" ? "success" : "info", title: `Payment ${res.status}` });
+        if (res.status === "PAID") push({ tone: "success", title: "Deposit confirmed" });
+        else if (res.status === "PENDING") {
+          push({ tone: "info", title: "Payment pending", body: "Monnify has not confirmed yet. We credit the wallet automatically once it does." });
+        } else push({ tone: "error", title: `Payment ${res.status.toLowerCase()}` });
       })
       .catch((err) => setError(humanError(err)))
       .finally(() => refresh());

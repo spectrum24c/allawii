@@ -140,14 +140,9 @@ export default function SecuritySetup() {
                 </p>
               </div>
 
-              <div className="flex gap-2">
-                <Button type="button" variant="secondary" size="lg" onClick={() => navigate("/dashboard")} className="px-5">
-                  Later
-                </Button>
-                <Button type="submit" block size="lg" loading={busy} disabled={!ready} trailing={<ArrowRight className="h-4 w-4" />}>
-                  {busy ? "Saving" : alreadySet ? "Update PIN" : "Save PIN and continue"}
-                </Button>
-              </div>
+              <Button type="submit" block size="lg" loading={busy} disabled={!ready} trailing={<ArrowRight className="h-4 w-4" />}>
+                {busy ? "Saving" : alreadySet ? "Update PIN" : "Save PIN and continue"}
+              </Button>
             </form>
           </div>
         </div>

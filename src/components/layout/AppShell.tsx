@@ -7,6 +7,7 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { naira, initials } from "../../lib/format";
 import { Badge, Button } from "../ui";
+import { actions } from "../../lib/api";
 
 const nav = [
   { to: "/dashboard", label: "Overview", icon: Home },
@@ -44,6 +45,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => { setMenuOpen(false); setUserMenu(false); }, [location.pathname]);
+
+  // A wallet without a transaction PIN cannot move money, so finish that step
+  // before anything else in the app is reachable.
+  useEffect(() => {
+    let alive = true;
+    actions.securityStatus()
+      .then((s) => {
+        if (alive && s && !s.pin_set && location.pathname !== "/security-setup") {
+          navigate("/security-setup", { replace: true });
+        }
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const kycIncomplete = !kyc || kyc.kyc_status !== "VERIFIED";
 

@@ -67,14 +67,28 @@ Deno.serve(async (req) => {
     const result = await verifyTransaction(reference);
     if (!result.ok || !result.data) return json({ error: result.error ?? "Monnify verification failed" }, 502);
 
-    const paid = result.data.paymentStatus === "PAID" && Number(result.data.amountPaid) * 100 >= tx.amount_minor;
+    const providerStatus = String(result.data.paymentStatus ?? "").toUpperCase();
+    const paid = providerStatus === "PAID" && Number(result.data.amountPaid) * 100 >= tx.amount_minor;
+
+    // PENDING / IN_PROGRESS is not a failure: the customer may still be on the
+    // checkout page, or the bank is clearing the payment. Failing it here would
+    // show a false "FAILED" receipt and clash with the webhook that settles it.
+    const stillOpen = ["PENDING", "IN_PROGRESS", "NEW", "AWAITING_PAYMENT"].includes(providerStatus);
+    if (!paid && stillOpen) {
+      return json({
+        status: "PENDING",
+        transaction: tx,
+        message: "Monnify has not confirmed this payment yet. If you completed checkout it will credit automatically.",
+      });
+    }
+
     const { data: settled } = await adminClient().rpc("rpc_deposit_settle", {
       p_client_reference: reference,
       p_provider_reference: result.data.transactionReference ?? null,
       p_success: paid,
-      p_reason: paid ? null : `Monnify status: ${result.data.paymentStatus}`,
+      p_reason: paid ? null : `Monnify status: ${providerStatus || "unknown"}`,
     });
-    return json({ status: result.data.paymentStatus, transaction: settled });
+    return json({ status: providerStatus, transaction: settled });
   }
 
   return json({ error: "unknown action" }, 400);
