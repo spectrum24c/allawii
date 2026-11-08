@@ -46,3 +46,9 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+# NOTE: this file lives outside .github/workflows because the automation token used
+# to push this repo lacks the GitHub `workflow` OAuth scope, so it cannot create
+# workflow files. Copy it to .github/workflows/deploy.yml yourself (or from the
+# GitHub web UI: Add file -> Create new file), then enable
+# Settings -> Pages -> Source: GitHub Actions.
